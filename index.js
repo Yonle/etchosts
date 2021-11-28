@@ -31,3 +31,4 @@ bot.on("message:text", ctx => {
 });
 
 bot.start();
+process.on('unhandledRejection', console.error);
