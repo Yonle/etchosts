@@ -25,7 +25,7 @@ bot.on("message:text", ctx => {
 		}
 	});
 	setTimeout(() => {
-		if (("`" + hosts.join("\n") + "`").length > 4000) return ctx.replyWithDocument(Buffer.from(hosts.join("\n")));
+		if (("`" + hosts.join("\n") + "`").length > 4000) return ctx.replyWithDocument(new grammy.InputFile(Buffer.from(hosts.join("\n")), 'hosts'));
 		ctx.reply("`" + hosts.join("\n") + "`", { parse_mode: "Markdown" })
 	}, 3000);
 });
