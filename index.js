@@ -54,7 +54,7 @@ bot.command("start", (ctx) =>
     .reply(
       "<b>🙋‍♂️Hi! I'm Static DNS file generator!</b>\n" +
         "To generate a static DNS file, Sent me a domains, Each splitted with space.",
-      { reply_markup: { force_reply: true }, parse_mode: "HTML" }
+      { reply_to_message_id: ctx.message.message_id, reply_markup: { force_reply: true, selective: true }, parse_mode: "HTML" }
     )
     .then(({ message_id }) => sess.set(ctx.message.from.id, message_id))
 );
@@ -65,7 +65,7 @@ bot.command("generate", (ctx) =>
     .reply(
       "What hostnames would you like to generate? " +
         "Each hostnames should be separated with space.",
-      { reply_markup: { force_reply: true } }
+      { reply_to_message_id: ctx.message.message_id, reply_markup: { force_reply: true, selective: true } }
     )
     .then(({ message_id }) => sess.set(ctx.message.from.id, message_id))
 );
@@ -94,12 +94,12 @@ bot.on("message:text", async (ctx) => {
       parse_mode: "Markdown",
       reply_to_message_id: ctx.message.message_id,
     });
-
-    // Delete session when available.
-    sess.delete(ctx.message.from.id);
   } catch (error) {
     ctx.reply(error.toString());
   }
+
+  // Delete session when available.
+  sess.delete(ctx.message.from.id);
 });
 
 bot.catch(console.error);
