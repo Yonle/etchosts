@@ -63,7 +63,7 @@ bot.command("start", (ctx) =>
 bot.command("generate", (ctx) =>
   ctx
     .reply(
-      "What hostnames would you like to generate? " +
+      "What hostnames would you like me to generate? " +
         "Each hostnames should be separated with space.",
       { reply_to_message_id: ctx.message.message_id, reply_markup: { force_reply: true, selective: true } }
     )
