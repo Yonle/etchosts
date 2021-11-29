@@ -81,15 +81,22 @@ bot.on("message:text", async (ctx) => {
   try {
     let hosts = await generate(ctx.message.text.split(" "));
     let textMsg = `\`${hosts}\``;
+
+    // Sent as file if the string length is at the maximum length.
     if (textMsg.length > 4096)
       return ctx.replyWithDocument(
         new grammy.InputFile(Buffer.from(hosts), "hosts"),
         { reply_to_message_id: ctx.message.message_id }
       );
+
+    // Sent as text message whenever it's possible.
     ctx.reply(textMsg, {
       parse_mode: "Markdown",
       reply_to_message_id: ctx.message.message_id,
     });
+
+    // Delete session when available.
+    sess.delete(ctx.message.from.id);
   } catch (error) {
     ctx.reply(error.toString());
   }
