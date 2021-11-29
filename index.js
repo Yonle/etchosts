@@ -1,34 +1,105 @@
 require("dotenv").config();
 const grammy = require("grammy");
-const resolver = require('dns').promises;
+const resolver = require("dns").promises;
 
-const bot = new grammy.Bot(process.env.BOT_TOKEN)
+// The telegram bot
+const bot = new grammy.Bot(process.env.BOT_TOKEN);
+
+// User Sessions, Used for /generate command in group.
+const sess = new Map();
 
 // When required
-resolver.setServers(['1.1.1.1']);
+resolver.setServers(["1.1.1.1"]);
 
-bot.command("start", ctx => ctx.reply("Hi! I'm /etc/hosts generator bot!\nPlease sent an hostname (each domain separated with space) to generate the text!\n\n* There's still no support to resolve a IP address behind Cloudflare(yet)\n* Still has no support to resolve onion address (yet)\n\nThis bot uses 1.1.1.1 DNS to resolve a hostname."));
-bot.catch = err => console.error;
-bot.on("message:text", ctx => {
-	let hosts = [];
-	let toResolve = ctx.message.text.split(" ");
-	toResolve.forEach(async (host, num) => {
-		host = /(?:https?:\/\/)?([\w\d\.\-]+)/.exec(host.toLowerCase())[1];
-		if (host.endsWith(".onion")) return ctx.reply(`\`[i] I skipped ${host} because i'm not supporting .onion domain yet.\``, { parse_mode: "MarkdownV2" })
-		try {
-			let ips = (await resolver.lookup(host, { all: true })).map(ip => ip.address);
-			hosts.push(ips.join(`\t${host}\n`) + `\t${host}`);
+async function generate(hostnames) {
+  let hosts = {};
+  let text = [];
 
-			//((num+1) == toResolve.length) && await ctx.reply("`" + hosts.join("\n") + "`", { parse_mode: "Markdown" });
-		} catch (e) {
-			console.error(e);
-		}
-	});
-	setTimeout(() => {
-		if (("`" + hosts.join("\n") + "`").length > 4000) return ctx.replyWithDocument(new grammy.InputFile(Buffer.from(hosts.join("\n")), 'hosts'));
-		ctx.reply("`" + hosts.join("\n") + "`", { parse_mode: "Markdown" })
-	}, 3000);
+  for (i in hostnames) {
+    // Grab the Hostname, even in URL.
+    host = /(?:https?:\/\/)?([\w\d\.\-]+)/.exec(hostnames[i].toLowerCase())[1];
+
+    // Ignore onion address sinceit's unsupported here
+    if (host.endsWith(".onion"))
+      return ctx.reply(
+        `\`[i] I skipped ${host} because i'm not supporting .onion domain yet.\``,
+        { parse_mode: "MarkdownV2" }
+      );
+
+    // Skip existing hostname
+    if (hosts[host]) continue;
+
+    // Look up IP address of {host} string.
+    // Returns Array with bunch of IP address of single hostname
+    hosts[host] = (await resolver.lookup(host, { all: true })).map(
+      (ip) => ip.address
+    );
+  }
+
+  // Parse hosts
+  for (host in hosts) {
+    let ips = hosts[host];
+
+    ips.forEach((ip) => {
+      text.push(`${ip}\t${host}`);
+    });
+  }
+
+  return text.join("\n");
+}
+
+// Handle /start command
+bot.command("start", (ctx) =>
+  ctx
+    .reply(
+      "<b>🙋‍♂️Hi! I'm Static DNS file generator!</b>\n" +
+        "To generate a static DNS file, Sent me a domains, Each splitted with space.",
+      { reply_markup: { force_reply: true }, parse_mode: "HTML" }
+    )
+    .then(({ message_id }) => sess.set(ctx.message.from.id, message_id))
+);
+
+// Handle /generate command
+bot.command("generate", (ctx) =>
+  ctx
+    .reply(
+      "What hostnames would you like to generate? " +
+        "Each hostnames should be separated with space.",
+      { reply_markup: { force_reply: true } }
+    )
+    .then(({ message_id }) => sess.set(ctx.message.from.id, message_id))
+);
+
+// Listen to text message event
+bot.on("message:text", async (ctx) => {
+  if (
+    ctx.message.chat.type !== "private" &&
+    ctx.message.reply_to_message &&
+    sess.get(ctx.message.from.id) != ctx.message.reply_to_message.message_id
+  )
+    return;
+  try {
+    let hosts = await generate(ctx.message.text.split(" "));
+    let textMsg = `\`${hosts}\``;
+    if (textMsg.length > 4096)
+      return ctx.replyWithDocument(
+        new grammy.InputFile(Buffer.from(hosts), "hosts"),
+        { reply_to_message_id: ctx.message.message_id }
+      );
+    ctx.reply(textMsg, {
+      parse_mode: "Markdown",
+      reply_to_message_id: ctx.message.message_id,
+    });
+  } catch (error) {
+    ctx.reply(error.toString());
+  }
 });
 
+bot.catch(console.error);
 bot.start();
-process.on('unhandledRejection', console.error);
+
+bot.api
+  .getMe()
+  .then(({ first_name }) => console.log(`Logged as ${first_name}!`));
+
+process.on("unhandledRejection", console.error);

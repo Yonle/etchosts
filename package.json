@@ -1,10 +1,11 @@
 {
   "name": "etchosts",
   "version": "1.0.0",
-  "description": "A /etc/hosts generator bot",
+  "description": "A static DNS text/file generator Telegram bot.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
   },
   "repository": {
     "type": "git",
