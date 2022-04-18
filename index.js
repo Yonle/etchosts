@@ -53,7 +53,7 @@ bot.command("start", (ctx) =>
   ctx
     .reply(
       "<b>🙋‍♂️Hi! I'm Static DNS file generator!</b>\n" +
-        "To generate a static DNS file, Sent me a domains, Each splitted with space.",
+        "To generate a static DNS file, Send me a domains, Each splitted with space.",
       { reply_to_message_id: ctx.message.message_id, reply_markup: { force_reply: true, selective: true }, parse_mode: "HTML" }
     )
     .then(({ message_id }) => sess.set(ctx.message.from.id, message_id))
